@@ -1,47 +1,62 @@
-import Html exposing (Html, div, h1, form, text, input, button)
-import Html.Attributes exposing(..)
-import Html.Events exposing(..)
-import Browser 
+module Main exposing (main)
 
-type alias Model = Int
+import Browser
+import Html exposing (Html, img, text)
+import Html.Attributes exposing (src)
+import Http
+import Json.Decode exposing (Decoder, field, string)
 
-type alias Conversao = { valorInserido : String , valorConvertido : String }
+
+type Model
+    = Loading
+    | Failure
+    | Success String
 
 
-init : Conversao 
-init = { valorInserido = "" , valorConvertido = "" }
+view : Model -> Html Msg
+view model =
+    case model of
+        Loading ->
+            text "loading..."
 
-update : msg -> Conversao -> Conversao
-update msg model = init
+        Failure ->
+            text "Não conseguimos converter, tente novamente mais tarde"
 
-main = Browser.sandbox { init = init, update = update, view = view }
-        
+        Success rates ->
+            text rates
+getMoeda : Cmd Msg
+getMoeda =
+    Http.get
+        { url = "http://api.exchangeratesapi.io/latest?symbols=BRL&base=USD"
+        , expect = Http.expectJson GotResult (field "rates" string)
+        }
 
-view : Conversao -> Html msg
-view user =
-    div []
-        [ h1 [] [ text "Cambio Facil" ]
-        , Html.form []
-            [ div []
-                [ text "Seleciona Moeda"
-                , input
-                    [ id "name"
-                    , type_ "text"
-                    ]
-                    []
-                ]
-            , div []
-                [ text "Converter Para"
-                , input
-                    [ id "email"
-                    , type_ "email"
-                    ]
-                    []
-                ]
-            , div []
-                [ button
-                    [ type_ "submit" ]
-                    [ text "Converter" ]
-                ]
-            ]
-        ]
+
+init : () -> ( Model, Cmd Msg )
+init _ =
+    ( Loading, getMoeda )
+
+
+type Msg
+    = GotResult (Result Http.Error String)
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        GotResult result ->
+            case result of
+                Ok rates ->
+                    ( Success rates, Cmd.none )
+
+                Err _ ->
+                    ( Failure, Cmd.none )
+
+
+main =
+    Browser.element
+        { init = init
+        , update = update
+        , subscriptions = \_ -> Sub.none
+        , view = view
+        }
