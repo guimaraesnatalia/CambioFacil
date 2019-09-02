@@ -6,6 +6,7 @@ import Browser
 main =
     Browser.sandbox { init = init, update = update, view = view }
     
+    ME VEJA
 
 --MODEL 
 type alias Model = 
@@ -18,6 +19,15 @@ init =
   {valorInserido = "" 
   , valorConvertido = ""
   }
+
+decodeField : String -> Decoder String
+decodeField name =
+    Json.at
+        [ "currentTarget"
+        , name
+        , "value"
+        ]
+        Json.string
 
 --MENSAGEM
 type Msg = 
